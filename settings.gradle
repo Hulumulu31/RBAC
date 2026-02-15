@@ -1,0 +1,2 @@
+// Settings for the RBAC project
+rootProject.name = 'rbac-system'
