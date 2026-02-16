@@ -828,7 +828,247 @@ public class RBACConsoleApp {
     }
 
     public static void main(String[] args) {
+        // Run comprehensive tests for all components
+        runAllTests();
+        
+        // Then start the console application
         RBACConsoleApp app = new RBACConsoleApp();
         app.start();
+    }
+    
+    public static void runAllTests() {
+        System.out.println("=== Running Comprehensive Tests ===\n");
+        
+        // Test User
+        testUser();
+        System.out.println();
+        
+        // Test Permission
+        testPermission();
+        System.out.println();
+        
+        // Test Role
+        testRole();
+        System.out.println();
+        
+        // Test AssignmentMetadata
+        testAssignmentMetadata();
+        System.out.println();
+        
+        // Test PermanentAssignment
+        testPermanentAssignment();
+        System.out.println();
+        
+        // Test TemporaryAssignment
+        testTemporaryAssignment();
+        System.out.println();
+        
+        System.out.println("=== All Tests Completed ===\n");
+    }
+    
+    public static void testUser() {
+        System.out.println("--- Testing User ---");
+        // Тестирование валидации
+        try {
+            // Корректный пользователь
+            User user1 = User.validate("john_doe", "John Doe", "john@example.com");
+            System.out.println("Created user: " + user1.format());
+
+            // Некорректные пользователи для тестирования
+            try {
+                User.validate("", "Jane Doe", "jane@example.com");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for empty username: " + e.getMessage());
+            }
+
+            try {
+                User.validate("ab", "Jane Doe", "jane@example.com");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for short username: " + e.getMessage());
+            }
+
+            try {
+                User.validate("user@name", "Jane Doe", "jane@example.com");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for invalid username: " + e.getMessage());
+            }
+
+            try {
+                User.validate("jane_doe", "Jane Doe", "invalid-email");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for invalid email: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            System.err.println("Unexpected error: " + e.getMessage());
+        }
+    }
+
+    public static void testPermission() {
+        System.out.println("--- Testing Permission ---");
+        try {
+            // Тестирование корректного Permission
+            Permission perm1 = new Permission("read", "USERS", "Can view user list");
+            System.out.println("Created permission: " + perm1.format());
+
+            // Тестирование поиска по шаблонам
+            System.out.println("Matches READ/users: " + perm1.matches("READ", "users"));
+            System.out.println("Matches READ/reports: " + perm1.matches("READ", "reports"));
+
+            // Тестирование некорректных значений
+            try {
+                new Permission("", "users", "description");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for empty name: " + e.getMessage());
+            }
+
+            try {
+                new Permission("READ WITH SPACE", "users", "description");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for name with space: " + e.getMessage());
+            }
+
+            try {
+                new Permission("READ", "", "description");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for empty resource: " + e.getMessage());
+            }
+
+            try {
+                new Permission("READ", "USERS", "");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for empty description: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            System.err.println("Unexpected error: " + e.getMessage());
+        }
+    }
+
+    public static void testRole() {
+        System.out.println("--- Testing Role ---");
+        try {
+            // Тестирование создания роли
+            Role adminRole = new Role("Administrator", "Full system access");
+            System.out.println("Created role: " + adminRole.getName());
+
+            // Тестирование добавления прав
+            Permission readPerm = new Permission("READ", "users", "Can view user list");
+            Permission writePerm = new Permission("WRITE", "users", "Can create and edit users");
+
+            adminRole.addPermission(readPerm);
+            adminRole.addPermission(writePerm);
+
+            System.out.println("Added permissions to role");
+            System.out.println(adminRole.format());
+
+            // Тестирование проверки прав
+            System.out.println("Has READ permission on users: " +
+                             adminRole.hasPermission("READ", "users"));
+            System.out.println("Has DELETE permission on users: " +
+                             adminRole.hasPermission("DELETE", "users"));
+
+            // Тестирование удаления прав
+            adminRole.removePermission(readPerm);
+            System.out.println("After removing READ permission:");
+            System.out.println("Has READ permission on users: " +
+                             adminRole.hasPermission("READ", "users"));
+
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static void testAssignmentMetadata() {
+        System.out.println("--- Testing AssignmentMetadata ---");
+        try {
+            // Тестирование создания метаданных
+            AssignmentMetadata metadata1 = AssignmentMetadata.now("admin", "Initial setup");
+            System.out.println("Created metadata: " + metadata1.format());
+
+            // Тестирование создания с заданной датой
+            AssignmentMetadata metadata2 = new AssignmentMetadata("manager", "2026-02-07 15:00:00", "Project access");
+            System.out.println("Custom metadata: " + metadata2.format());
+
+            // Тестирование ошибок
+            try {
+                new AssignmentMetadata("", "2026-02-07 15:00:00", "test");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for empty assignedBy: " + e.getMessage());
+            }
+
+            try {
+                new AssignmentMetadata(null, "2026-02-07 15:00:00", "test");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Expected error for null assignedBy: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            System.err.println("Unexpected error: " + e.getMessage());
+        }
+    }
+
+    public static void testPermanentAssignment() {
+        System.out.println("--- Testing PermanentAssignment ---");
+        try {
+            // Создание тестовых объектов
+            User user = User.validate("john_doe", "John Doe", "john@example.com");
+            Role adminRole = new Role("Administrator", "Full system access");
+            AssignmentMetadata metadata = AssignmentMetadata.now("admin", "Initial setup");
+
+            // Создание постоянного назначения
+            PermanentAssignment permAssign = new PermanentAssignment(user, adminRole, metadata);
+
+            System.out.println("Permanent assignment created:");
+            System.out.println(permAssign.summary());
+            System.out.println("Is active: " + permAssign.isActive());
+            System.out.println("Is revoked: " + permAssign.isRevoked());
+
+            // Отзыв назначения
+            permAssign.revoke();
+            System.out.println("\nAfter revocation:");
+            System.out.println("Is active: " + permAssign.isActive());
+            System.out.println("Is revoked: " + permAssign.isRevoked());
+
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static void testTemporaryAssignment() {
+        System.out.println("--- Testing TemporaryAssignment ---");
+        try {
+            // Создание тестовых объектов
+            User user = User.validate("jane_doe", "Jane Doe", "jane@example.com");
+            Role viewerRole = new Role("Viewer", "Limited read access");
+            AssignmentMetadata metadata = AssignmentMetadata.now("admin", "Temporary access for project");
+
+            // Создание временного назначения (истекает через 1 минуту)
+            String futureDate = java.time.LocalDateTime.now().plusMinutes(1).format(
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            TemporaryAssignment tempAssign = new TemporaryAssignment(user, viewerRole, metadata, futureDate);
+
+            System.out.println("Temporary assignment created:");
+            System.out.println(tempAssign.summary());
+            System.out.println("Is active: " + tempAssign.isActive());
+            System.out.println("Is expired: " + tempAssign.isExpired());
+
+            // Продление назначения
+            String extendedDate = java.time.LocalDateTime.now().plusHours(1).format(
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            tempAssign.extend(extendedDate);
+            System.out.println("\nAfter extension:");
+            System.out.println("New expiration: " + tempAssign.getTimeRemaining());
+
+            // Тестирование автопродления
+            tempAssign.enableAutoRenew();
+            System.out.println("\nAuto-renew enabled: " + tempAssign.isAutoRenewEnabled());
+
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
