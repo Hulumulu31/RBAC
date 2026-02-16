@@ -99,46 +99,12 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
     public void enableAutoRenew() {
         this.autoRenew = true;
     }
-    
+
     public void disableAutoRenew() {
         this.autoRenew = false;
     }
-    
+
     public boolean isAutoRenewEnabled() {
         return this.autoRenew;
-    }
-    
-    public static void main(String[] args) {
-        try {
-            // Создание тестовых объектов
-            User user = User.validate("jane_doe", "Jane Doe", "jane@example.com");
-            Role viewerRole = new Role("Viewer", "Limited read access");
-            AssignmentMetadata metadata = AssignmentMetadata.now("admin", "Temporary access for project");
-            
-            // Создание временного назначения (истекает через 1 минуту)
-            String futureDate = LocalDateTime.now().plusMinutes(1).format(
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            TemporaryAssignment tempAssign = new TemporaryAssignment(user, viewerRole, metadata, futureDate);
-            
-            System.out.println("Temporary assignment created:");
-            System.out.println(tempAssign.summary());
-            System.out.println("Is active: " + tempAssign.isActive());
-            System.out.println("Is expired: " + tempAssign.isExpired());
-            
-            // Продление назначения
-            String extendedDate = LocalDateTime.now().plusHours(1).format(
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            tempAssign.extend(extendedDate);
-            System.out.println("\nAfter extension:");
-            System.out.println("New expiration: " + tempAssign.getTimeRemaining());
-            
-            // Тестирование автопродления
-            tempAssign.enableAutoRenew();
-            System.out.println("\nAuto-renew enabled: " + tempAssign.isAutoRenewEnabled());
-            
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
 }

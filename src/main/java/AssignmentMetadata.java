@@ -26,36 +26,8 @@ public record AssignmentMetadata(String assignedBy, String assignedAt, String re
     
     // Метод для форматированного вывода
     public String format() {
-        return "Assigned by: " + assignedBy + 
-               " at " + assignedAt + 
+        return "Assigned by: " + assignedBy +
+               " at " + assignedAt +
                (reason != null && !reason.trim().isEmpty() ? " (Reason: " + reason + ")" : "");
-    }
-    
-    public static void main(String[] args) {
-        try {
-            // Тестирование создания метаданных
-            AssignmentMetadata metadata1 = AssignmentMetadata.now("admin", "Initial setup");
-            System.out.println("Created metadata: " + metadata1.format());
-            
-            // Тестирование создания с заданной датой
-            AssignmentMetadata metadata2 = new AssignmentMetadata("manager", "2026-02-07 15:00:00", "Project access");
-            System.out.println("Custom metadata: " + metadata2.format());
-            
-            // Тестирование ошибок
-            try {
-                new AssignmentMetadata("", "2026-02-07 15:00:00", "test");
-            } catch (IllegalArgumentException e) {
-                System.out.println("Expected error for empty assignedBy: " + e.getMessage());
-            }
-            
-            try {
-                new AssignmentMetadata(null, "2026-02-07 15:00:00", "test");
-            } catch (IllegalArgumentException e) {
-                System.out.println("Expected error for null assignedBy: " + e.getMessage());
-            }
-            
-        } catch (Exception e) {
-            System.err.println("Unexpected error: " + e.getMessage());
-        }
     }
 }

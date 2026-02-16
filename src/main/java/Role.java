@@ -113,45 +113,11 @@ public class Role {
         sb.append("Role: ").append(name).append(" [ID: ").append(id).append("]\n");
         sb.append("Description: ").append(description).append("\n");
         sb.append("Permissions (").append(permissions.size()).append("):\n");
-        
+
         for (Permission perm : permissions) {
             sb.append(" - ").append(perm.format()).append("\n");
         }
-        
+
         return sb.toString();
-    }
-    
-    public static void main(String[] args) {
-        try {
-            // Тестирование создания роли
-            Role adminRole = new Role("Administrator", "Full system access");
-            System.out.println("Created role: " + adminRole.getName());
-            
-            // Тестирование добавления прав
-            Permission readPerm = new Permission("READ", "users", "Can view user list");
-            Permission writePerm = new Permission("WRITE", "users", "Can create and edit users");
-            
-            adminRole.addPermission(readPerm);
-            adminRole.addPermission(writePerm);
-            
-            System.out.println("Added permissions to role");
-            System.out.println(adminRole.format());
-            
-            // Тестирование проверки прав
-            System.out.println("Has READ permission on users: " + 
-                             adminRole.hasPermission("READ", "users"));
-            System.out.println("Has DELETE permission on users: " + 
-                             adminRole.hasPermission("DELETE", "users"));
-            
-            // Тестирование удаления прав
-            adminRole.removePermission(readPerm);
-            System.out.println("After removing READ permission:");
-            System.out.println("Has READ permission on users: " + 
-                             adminRole.hasPermission("READ", "users"));
-            
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
 }
