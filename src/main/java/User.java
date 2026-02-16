@@ -41,41 +41,4 @@ public record User(String username, String fullName, String email) {
     public String format() {
         return username + " (" + fullName + ") <" + email + ">";
     }
-    
-    public static void main(String[] args) {
-        // Тестирование валидации
-        try {
-            // Корректный пользователь
-            User user1 = User.validate("john_doe", "John Doe", "john@example.com");
-            System.out.println("Created user: " + user1.format());
-            
-            // Некорректные пользователи для тестирования
-            try {
-                User.validate("", "Jane Doe", "jane@example.com");
-            } catch (IllegalArgumentException e) {
-                System.out.println("Expected error for empty username: " + e.getMessage());
-            }
-            
-            try {
-                User.validate("ab", "Jane Doe", "jane@example.com");
-            } catch (IllegalArgumentException e) {
-                System.out.println("Expected error for short username: " + e.getMessage());
-            }
-            
-            try {
-                User.validate("user@name", "Jane Doe", "jane@example.com");
-            } catch (IllegalArgumentException e) {
-                System.out.println("Expected error for invalid username: " + e.getMessage());
-            }
-            
-            try {
-                User.validate("jane_doe", "Jane Doe", "invalid-email");
-            } catch (IllegalArgumentException e) {
-                System.out.println("Expected error for invalid email: " + e.getMessage());
-            }
-            
-        } catch (Exception e) {
-            System.err.println("Unexpected error: " + e.getMessage());
-        }
-    }
 }
