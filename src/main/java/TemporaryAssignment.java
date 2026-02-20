@@ -107,4 +107,13 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
     public boolean isAutoRenewEnabled() {
         return this.autoRenew;
     }
+
+    /**
+     * Возвращает дату истечения срока действия назначения.
+     *
+     * @return дата истечения в формате "yyyy-MM-dd HH:mm:ss"
+     */
+    public String getExpiresAt() {
+        return expiresAt;
+    }
 }
