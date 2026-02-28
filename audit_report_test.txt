@@ -1,0 +1,58 @@
+=== AUDIT LOG ===
+Generated at: 2026-02-28 15:19:23
+Total entries: 9
+
+[2026-02-28 15:08:18]
+  Action:    CREATE_USER
+  Performer: system
+  Target:    admin
+  Details:   Demo user created
+
+[2026-02-28 15:08:18]
+  Action:    CREATE_USER
+  Performer: system
+  Target:    john_manager
+  Details:   Demo user created
+
+[2026-02-28 15:08:18]
+  Action:    CREATE_USER
+  Performer: system
+  Target:    jane_analyst
+  Details:   Demo user created
+
+[2026-02-28 15:08:18]
+  Action:    CREATE_ROLE
+  Performer: system
+  Target:    Administrator
+  Details:   Demo role created
+
+[2026-02-28 15:08:18]
+  Action:    CREATE_ROLE
+  Performer: system
+  Target:    Manager
+  Details:   Demo role created
+
+[2026-02-28 15:08:18]
+  Action:    CREATE_ROLE
+  Performer: system
+  Target:    Analyst
+  Details:   Demo role created
+
+[2026-02-28 15:08:18]
+  Action:    ASSIGN_ROLE
+  Performer: system
+  Target:    admin
+  Details:   Role: Administrator, Type: PERMANENT
+
+[2026-02-28 15:08:18]
+  Action:    ASSIGN_ROLE
+  Performer: system
+  Target:    john_manager
+  Details:   Role: Manager, Type: PERMANENT
+
+[2026-02-28 15:08:18]
+  Action:    ASSIGN_ROLE
+  Performer: system
+  Target:    jane_analyst
+  Details:   Role: Analyst, Type: TEMPORARY
+
