@@ -156,6 +156,21 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
+     * Находит назначения, соответствующие указанному фильтру, используя parallelStream.
+     *
+     * @param filter фильтр для поиска
+     * @return список назначений, соответствующих фильтру
+     */
+    public List<RoleAssignment> findByFilterParallel(AssignmentFilter filter) {
+        if (filter == null) {
+            return findAll();
+        }
+        return assignments.values().parallelStream()
+                .filter(filter::test)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Находит все назначения с применением фильтра и сортировки (потокобезопасная версия).
      *
      * @param filter фильтр для поиска (может быть null)
