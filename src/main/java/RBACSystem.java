@@ -10,6 +10,7 @@ public class RBACSystem {
     private final AssignmentManager assignmentManager;
     private final AuditLog auditLog;
     private final ReportGenerator reportGenerator;
+    private BackgroundExecutor backgroundExecutor;
     private String currentUser;
 
     public RBACSystem() {
@@ -26,11 +27,28 @@ public class RBACSystem {
     public AssignmentManager getAssignmentManager() { return assignmentManager; }
     public AuditLog getAuditLog() { return auditLog; }
     public ReportGenerator getReportGenerator() { return reportGenerator; }
+    public BackgroundExecutor getBackgroundExecutor() { return backgroundExecutor; }
 
     public String getCurrentUser() { return currentUser; }
     public void setCurrentUser(String username) {
         if (username != null && !username.trim().isEmpty()) {
             this.currentUser = username;
+        }
+    }
+
+    /**
+     * Инициализирует BackgroundExecutor с пулом из 4 потоков.
+     */
+    public void initExecutor(int poolSize) {
+        this.backgroundExecutor = new BackgroundExecutor(poolSize, auditLog);
+    }
+
+    /**
+     * Останавливает все фоновые задачи.
+     */
+    public void shutdown() {
+        if (backgroundExecutor != null) {
+            backgroundExecutor.shutdown();
         }
     }
 
@@ -88,35 +106,35 @@ public class RBACSystem {
     public String generateStatistics() {
         StringBuilder sb = new StringBuilder();
         sb.append("=== RBAC System Statistics ===\n\n");
-        
+
         sb.append("Users: ").append(userManager.count()).append("\n");
         sb.append("Roles: ").append(roleManager.count()).append("\n");
-        
+
         int totalAssignments = assignmentManager.count();
         int activeAssignments = (int) assignmentManager.findAll().stream()
             .filter(RoleAssignment::isActive).count();
         int expiredAssignments = totalAssignments - activeAssignments;
-        
+
         sb.append("Assignments: ").append(totalAssignments)
           .append(" (Active: ").append(activeAssignments)
           .append(", Expired: ").append(expiredAssignments).append(")\n");
-        
-        double avgRolesPerUser = userManager.count() > 0 
-            ? (double) activeAssignments / userManager.count() 
+
+        double avgRolesPerUser = userManager.count() > 0
+            ? (double) activeAssignments / userManager.count()
             : 0;
         sb.append(String.format("Average roles per user: %.2f\n", avgRolesPerUser));
-        
+
         // Top 3 roles
         sb.append("\nTop 3 most assigned roles:\n");
         Map<String, Long> roleCounts = assignmentManager.getActiveAssignments().stream()
             .collect(Collectors.groupingBy(a -> a.role().getName(), Collectors.counting()));
-        
+
         roleCounts.entrySet().stream()
             .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
             .limit(3)
             .forEach(e -> sb.append("  - ").append(e.getKey())
                 .append(": ").append(e.getValue()).append(" assignments\n"));
-        
+
         return sb.toString();
     }
 }

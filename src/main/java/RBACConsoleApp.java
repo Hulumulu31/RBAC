@@ -3,7 +3,7 @@ import java.util.*;
 /**
  * Интерактивная консольная утилита для управления пользователями, ролями и правами доступа
  * с использованием модели RBAC (Role-Based Access Control).
- * 
+ *
  * Версия 2.0: Реализована через систему команд (Command/CommandParser/RBACSystem).
  */
 public class RBACConsoleApp {
@@ -15,12 +15,19 @@ public class RBACConsoleApp {
         this.system = new RBACSystem();
         this.commandParser = new CommandParser();
         this.scanner = new Scanner(System.in);
-        
+
         // Инициализируем систему (создаем начальные данные)
         this.system.initialize();
-        
+
         // Регистрируем все команды
         CommandRegistry.registerAllCommands(this.commandParser);
+
+        // Shutdown hook — гарантия корректного завершения при любом выходе
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (system != null) {
+                system.shutdown();
+            }
+        }, "rbac-shutdown-hook"));
     }
 
     public void start() {
@@ -41,6 +48,7 @@ public class RBACConsoleApp {
             String firstWord = input.split("\\s+")[0].toLowerCase();
             if (firstWord.equals("exit") || firstWord.equals("quit")) {
                 if (ConsoleUtils.promptYesNo(scanner, "Are you sure you want to exit?")) {
+                    shutdownSystem();
                     System.out.println(FormatUtils.ANSI_CYAN + "Exiting RBAC Console Application... Goodbye!" + FormatUtils.ANSI_RESET);
                     running = false;
                     break;
@@ -52,7 +60,17 @@ public class RBACConsoleApp {
             commandParser.parseAndExecute(input, scanner, system);
         }
 
+        shutdownSystem();
         scanner.close();
+    }
+
+    /**
+     * Корректно завершает все фоновые задачи перед выходом.
+     */
+    private void shutdownSystem() {
+        if (system != null) {
+            system.shutdown();
+        }
     }
 
     private void printMainMenu() {
