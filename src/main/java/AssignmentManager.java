@@ -1,13 +1,14 @@
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Менеджер назначений для управления назначениями ролей в системе RBAC.
+ * Потокобезопасный менеджер назначений для управления назначениями ролей в системе RBAC.
  * Реализует интерфейс Repository<RoleAssignment> и предоставляет дополнительные методы
  * для поиска, фильтрации, сортировки и управления правами пользователей.
  */
 public class AssignmentManager implements Repository<RoleAssignment> {
-    private final Map<String, RoleAssignment> assignments;  // ключ — assignmentId
+    private final Map<String, RoleAssignment> assignments;  // ключ — assignmentId (ConcurrentHashMap)
     private final UserManager userManager;
     private final RoleManager roleManager;
 
@@ -18,7 +19,7 @@ public class AssignmentManager implements Repository<RoleAssignment> {
      * @param roleManager менеджер ролей для проверки существования
      */
     public AssignmentManager(UserManager userManager, RoleManager roleManager) {
-        this.assignments = new HashMap<>();
+        this.assignments = new ConcurrentHashMap<>();
         this.userManager = userManager;
         this.roleManager = roleManager;
     }
@@ -110,12 +111,12 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Находит назначения для конкретного пользователя.
+     * Находит назначения для конкретного пользователя (потокобезопасная версия).
      *
      * @param user пользователь для поиска
      * @return список назначений для пользователя
      */
-    public List<RoleAssignment> findByUser(User user) {
+    public synchronized List<RoleAssignment> findByUser(User user) {
         if (user == null) {
             return Collections.emptyList();
         }
@@ -125,12 +126,12 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Находит назначения для конкретной роли.
+     * Находит назначения для конкретной роли (потокобезопасная версия).
      *
      * @param role роль для поиска
      * @return список назначений для роли
      */
-    public List<RoleAssignment> findByRole(Role role) {
+    public synchronized List<RoleAssignment> findByRole(Role role) {
         if (role == null) {
             return Collections.emptyList();
         }
@@ -140,12 +141,12 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Находит назначения, соответствующие указанному фильтру.
+     * Находит назначения, соответствующие указанному фильтру (потокобезопасная версия).
      *
      * @param filter фильтр для поиска
      * @return список назначений, соответствующих фильтру
      */
-    public List<RoleAssignment> findByFilter(AssignmentFilter filter) {
+    public synchronized List<RoleAssignment> findByFilter(AssignmentFilter filter) {
         if (filter == null) {
             return findAll();
         }
@@ -155,13 +156,13 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Находит все назначения с применением фильтра и сортировки.
+     * Находит все назначения с применением фильтра и сортировки (потокобезопасная версия).
      *
      * @param filter фильтр для поиска (может быть null)
      * @param sorter компаратор для сортировки (может быть null)
      * @return отфильтрованный и отсортированный список назначений
      */
-    public List<RoleAssignment> findAll(AssignmentFilter filter, Comparator<RoleAssignment> sorter) {
+    public synchronized List<RoleAssignment> findAll(AssignmentFilter filter, Comparator<RoleAssignment> sorter) {
         List<RoleAssignment> result = findByFilter(filter);
         if (sorter != null) {
             result.sort(sorter);
@@ -170,22 +171,22 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Возвращает все активные назначения.
+     * Возвращает все активные назначения (потокобезопасная версия).
      *
      * @return список активных назначений
      */
-    public List<RoleAssignment> getActiveAssignments() {
+    public synchronized List<RoleAssignment> getActiveAssignments() {
         return assignments.values().stream()
                 .filter(RoleAssignment::isActive)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Возвращает все истёкшие назначения.
+     * Возвращает все истёкшие назначения (потокобезопасная версия).
      *
      * @return список истёкших назначений
      */
-    public List<RoleAssignment> getExpiredAssignments() {
+    public synchronized List<RoleAssignment> getExpiredAssignments() {
         return assignments.values().stream()
                 .filter(assignment -> !assignment.isActive())
                 .collect(Collectors.toList());
@@ -203,14 +204,14 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Проверяет, имеет ли пользователь указанное право доступа.
+     * Проверяет, имеет ли пользователь указанное право доступа (потокобезопасная версия).
      *
      * @param user пользователь
      * @param permissionName имя права
      * @param resource ресурс
      * @return true, если пользователь имеет право через какую-либо из своих ролей
      */
-    public boolean userHasPermission(User user, String permissionName, String resource) {
+    public synchronized boolean userHasPermission(User user, String permissionName, String resource) {
         Set<Permission> userPermissions = getUserPermissions(user);
         return userPermissions.stream()
                 .anyMatch(p -> p.name().equalsIgnoreCase(permissionName) &&
@@ -218,13 +219,13 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Возвращает все права пользователя из всех его активных ролей.
+     * Возвращает все права пользователя из всех его активных ролей (потокобезопасная версия).
      *
      * @param user пользователь
      * @return множество всех прав пользователя
      */
-    public Set<Permission> getUserPermissions(User user) {
-        Set<Permission> allPermissions = new HashSet<>();
+    public synchronized Set<Permission> getUserPermissions(User user) {
+        Set<Permission> allPermissions = ConcurrentHashMap.newKeySet();
         List<RoleAssignment> userAssignments = findByUser(user);
 
         for (RoleAssignment assignment : userAssignments) {
@@ -237,14 +238,14 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Отозвать назначение по идентификатору.
+     * Отозвать назначение по идентификатору (потокобезопасная версия).
      * Работает только с PermanentAssignment.
      *
      * @param assignmentId идентификатор назначения
      * @throws IllegalArgumentException если назначение не найдено
      * @throws IllegalArgumentException если назначение не является постоянным
      */
-    public void revokeAssignment(String assignmentId) {
+    public synchronized void revokeAssignment(String assignmentId) {
         RoleAssignment assignment = assignments.get(assignmentId);
         if (assignment == null) {
             throw new IllegalArgumentException("Assignment with id '" + assignmentId + "' not found");
@@ -256,14 +257,14 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Продлить временное назначение.
+     * Продлить временное назначение (потокобезопасная версия).
      *
      * @param assignmentId идентификатор назначения
      * @param newExpirationDate новая дата истечения в формате "yyyy-MM-dd HH:mm:ss"
      * @throws IllegalArgumentException если назначение не найдено
      * @throws IllegalArgumentException если назначение не является временным
      */
-    public void extendTemporaryAssignment(String assignmentId, String newExpirationDate) {
+    public synchronized void extendTemporaryAssignment(String assignmentId, String newExpirationDate) {
         RoleAssignment assignment = assignments.get(assignmentId);
         if (assignment == null) {
             throw new IllegalArgumentException("Assignment with id '" + assignmentId + "' not found");
@@ -282,9 +283,9 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     }
 
     /**
-     * Проверяет, есть ли у пользователя активное назначение для данной роли.
+     * Проверяет, есть ли у пользователя активное назначение для данной роли (потокобезопасная версия).
      */
-    private boolean hasActiveAssignment(User user, Role role) {
+    private synchronized boolean hasActiveAssignment(User user, Role role) {
         return assignments.values().stream()
                 .filter(assignment -> assignment.user().equals(user) &&
                                      assignment.role().equals(role))
