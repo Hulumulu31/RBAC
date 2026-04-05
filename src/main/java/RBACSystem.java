@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -11,6 +12,8 @@ public class RBACSystem {
     private final AuditLog auditLog;
     private final ReportGenerator reportGenerator;
     private BackgroundExecutor backgroundExecutor;
+    private ScheduledTaskManager scheduledTaskManager;
+    private final AtomicBoolean alreadyShutdown = new AtomicBoolean(false);
     private String currentUser;
 
     public RBACSystem() {
@@ -28,6 +31,7 @@ public class RBACSystem {
     public AuditLog getAuditLog() { return auditLog; }
     public ReportGenerator getReportGenerator() { return reportGenerator; }
     public BackgroundExecutor getBackgroundExecutor() { return backgroundExecutor; }
+    public ScheduledTaskManager getScheduledTaskManager() { return scheduledTaskManager; }
 
     public String getCurrentUser() { return currentUser; }
     public void setCurrentUser(String username) {
@@ -44,11 +48,29 @@ public class RBACSystem {
     }
 
     /**
-     * Останавливает все фоновые задачи.
+     * Инициализирует ScheduledTaskManager и запускает периодические задачи.
+     *
+     * @param checkIntervalSeconds интервал проверки истёкших назначений
+     * @param statsIntervalSeconds интервал логирования статистики
+     */
+    public void initScheduler(long checkIntervalSeconds, long statsIntervalSeconds) {
+        this.scheduledTaskManager = new ScheduledTaskManager(assignmentManager, auditLog, this);
+        this.scheduledTaskManager.startExpiredAssignmentChecker(checkIntervalSeconds);
+        this.scheduledTaskManager.startStatisticsLogger(statsIntervalSeconds);
+    }
+
+    /**
+     * Останавливает все фоновые задачи (идемпотентный — безопасен при повторном вызове).
      */
     public void shutdown() {
+        if (!alreadyShutdown.compareAndSet(false, true)) {
+            return; // Уже завершено
+        }
         if (backgroundExecutor != null) {
             backgroundExecutor.shutdown();
+        }
+        if (scheduledTaskManager != null) {
+            scheduledTaskManager.shutdown();
         }
     }
 
