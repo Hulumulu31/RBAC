@@ -161,6 +161,21 @@ public class UserManager implements Repository<User> {
     }
 
     /**
+     * Находит пользователей, соответствующих указанному фильтру, используя parallelStream.
+     *
+     * @param filter фильтр для поиска
+     * @return список пользователей, соответствующих фильтру
+     */
+    public List<User> findByFilterParallel(UserFilter filter) {
+        if (filter == null) {
+            return findAll();
+        }
+        return users.values().parallelStream()
+                .filter(filter::test)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Находит всех пользователей с применением фильтра и сортировки (потокобезопасная версия).
      *
      * @param filter фильтр для поиска (может быть null)

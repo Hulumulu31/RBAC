@@ -123,6 +123,21 @@ public class RoleManager implements Repository<Role> {
     }
 
     /**
+     * Находит роли, соответствующие указанному фильтру, используя parallelStream.
+     *
+     * @param filter фильтр для поиска
+     * @return список ролей, соответствующих фильтру
+     */
+    public List<Role> findByFilterParallel(RoleFilter filter) {
+        if (filter == null) {
+            return findAll();
+        }
+        return rolesById.values().parallelStream()
+                .filter(filter::test)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Находит все роли с применением фильтра и сортировки (потокобезопасная версия).
      *
      * @param filter фильтр для поиска (может быть null)
