@@ -989,6 +989,8 @@ public class CommandRegistry {
         parser.registerCommand("exit", "Exit the application",
             (scanner, system) -> {
                 if (ConsoleUtils.promptYesNo(scanner, "Are you sure you want to exit?")) {
+                    // Корректно завершаем все фоновые задачи
+                    system.shutdown();
                     System.out.println(FormatUtils.ANSI_CYAN + "Exiting RBAC Console Application... Goodbye!" + FormatUtils.ANSI_RESET);
                     System.exit(0);
                 }
@@ -1148,6 +1150,80 @@ public class CommandRegistry {
                         ConsoleUtils.printError("Error exporting report: " + e.getMessage());
                     }
                 }
+            });
+
+        // report-users-async — асинхронная генерация отчёта
+        parser.registerCommand("report-users-async", "Generate user report asynchronously",
+            (scanner, system) -> {
+                System.out.println(FormatUtils.formatSubHeader("Async User Report"));
+                if (system.getBackgroundExecutor() == null) {
+                    ConsoleUtils.printError("Background executor is not initialized. Run 'init-executor' first.");
+                    return;
+                }
+                ConsoleUtils.printInfo("Generating user report in background...");
+                system.getBackgroundExecutor().submitTask(() -> {
+                    String report = system.getReportGenerator().generateUserReportParallel(
+                        system.getUserManager(),
+                        system.getAssignmentManager()
+                    );
+                    String filename = "user_report_async_" + System.currentTimeMillis() + ".txt";
+                    try {
+                        system.getReportGenerator().exportToFile(report, filename);
+                        ConsoleUtils.printInfo("Async report saved to: " + filename);
+                    } catch (Exception e) {
+                        ConsoleUtils.printError("Error saving async report: " + e.getMessage());
+                    }
+                }, "generate-user-report-async");
+                ConsoleUtils.printSuccess("Report generation started in background");
+            });
+
+        // save-async — асинхронное сохранение
+        parser.registerCommand("save-async", "Save data to file asynchronously",
+            (scanner, system) -> {
+                System.out.println(FormatUtils.formatSubHeader("Async Save Data"));
+                if (system.getBackgroundExecutor() == null) {
+                    ConsoleUtils.printError("Background executor is not initialized. Run 'init-executor' first.");
+                    return;
+                }
+                String filename = "rbac_data_" + System.currentTimeMillis() + ".txt";
+                ConsoleUtils.printInfo("Saving data in background: " + filename);
+                system.getBackgroundExecutor().submitTask(() -> {
+                    try {
+                        var auditLog = system.getAuditLog();
+                        auditLog.saveToFile(filename);
+                        ConsoleUtils.printInfo("Async save completed: " + filename);
+                    } catch (Exception e) {
+                        ConsoleUtils.printError("Error during async save: " + e.getMessage());
+                    }
+                }, "save-data-async");
+                ConsoleUtils.printSuccess("Save operation started in background");
+            });
+
+        // init-executor — инициализация ExecutorService
+        parser.registerCommand("init-executor", "Initialize background executor",
+            (scanner, system) -> {
+                System.out.println(FormatUtils.formatSubHeader("Initialize Executor"));
+                if (system.getBackgroundExecutor() != null) {
+                    ConsoleUtils.printWarning("Executor already initialized. Active tasks: " +
+                        system.getBackgroundExecutor().getActiveTaskCount());
+                    return;
+                }
+                int poolSize = ConsoleUtils.promptInt(scanner, "Enter thread pool size (default 4): ", 1, 16);
+                system.initExecutor(poolSize);
+                ConsoleUtils.printSuccess("Executor initialized with pool size: " + poolSize);
+            });
+
+        // shutdown-executor — завершение ExecutorService
+        parser.registerCommand("shutdown-executor", "Shutdown background executor",
+            (scanner, system) -> {
+                System.out.println(FormatUtils.formatSubHeader("Shutdown Executor"));
+                if (system.getBackgroundExecutor() == null) {
+                    ConsoleUtils.printWarning("Executor is not initialized.");
+                    return;
+                }
+                ConsoleUtils.printInfo("Shutting down executor...");
+                system.getBackgroundExecutor().shutdown();
+                ConsoleUtils.printSuccess("Executor shut down");
             });
     }
 }
