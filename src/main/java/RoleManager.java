@@ -1,21 +1,22 @@
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Менеджер ролей для управления ролями в системе RBAC.
+ * Потокобезопасный менеджер ролей для управления ролями в системе RBAC.
  * Реализует интерфейс Repository<Role> и предоставляет дополнительные методы
  * для поиска, фильтрации, сортировки и управления правами ролей.
  */
 public class RoleManager implements Repository<Role> {
-    private final Map<String, Role> rolesById;      // ключ — id роли
-    private final Map<String, Role> rolesByName;    // ключ — имя роли
+    private final Map<String, Role> rolesById;      // ключ — id роли (ConcurrentHashMap)
+    private final Map<String, Role> rolesByName;    // ключ — имя роли (ConcurrentHashMap)
 
     /**
      * Создает новый RoleManager с пустым хранилищем.
      */
     public RoleManager() {
-        this.rolesById = new HashMap<>();
-        this.rolesByName = new HashMap<>();
+        this.rolesById = new ConcurrentHashMap<>();
+        this.rolesByName = new ConcurrentHashMap<>();
     }
 
     /**
@@ -107,12 +108,12 @@ public class RoleManager implements Repository<Role> {
     }
 
     /**
-     * Находит роли, соответствующие указанному фильтру.
+     * Находит роли, соответствующие указанному фильтру (потокобезопасная версия).
      *
      * @param filter фильтр для поиска
      * @return список ролей, соответствующих фильтру
      */
-    public List<Role> findByFilter(RoleFilter filter) {
+    public synchronized List<Role> findByFilter(RoleFilter filter) {
         if (filter == null) {
             return findAll();
         }
@@ -122,13 +123,13 @@ public class RoleManager implements Repository<Role> {
     }
 
     /**
-     * Находит все роли с применением фильтра и сортировки.
+     * Находит все роли с применением фильтра и сортировки (потокобезопасная версия).
      *
      * @param filter фильтр для поиска (может быть null)
      * @param sorter компаратор для сортировки (может быть null)
      * @return отфильтрованный и отсортированный список ролей
      */
-    public List<Role> findAll(RoleFilter filter, Comparator<Role> sorter) {
+    public synchronized List<Role> findAll(RoleFilter filter, Comparator<Role> sorter) {
         List<Role> result = findByFilter(filter);
         if (sorter != null) {
             result.sort(sorter);
@@ -147,14 +148,14 @@ public class RoleManager implements Repository<Role> {
     }
 
     /**
-     * Добавляет право доступа к роли.
+     * Добавляет право доступа к роли (потокобезопасная версия).
      *
      * @param roleName имя роли
      * @param permission право для добавления
      * @throws IllegalArgumentException если роль не найдена
      * @throws IllegalArgumentException если permission null
      */
-    public void addPermissionToRole(String roleName, Permission permission) {
+    public synchronized void addPermissionToRole(String roleName, Permission permission) {
         Role role = rolesByName.get(roleName);
         if (role == null) {
             throw new IllegalArgumentException("Role with name '" + roleName + "' not found");
@@ -166,13 +167,13 @@ public class RoleManager implements Repository<Role> {
     }
 
     /**
-     * Удаляет право доступа из роли.
+     * Удаляет право доступа из роли (потокобезопасная версия).
      *
      * @param roleName имя роли
      * @param permission право для удаления
      * @throws IllegalArgumentException если роль не найдена
      */
-    public void removePermissionFromRole(String roleName, Permission permission) {
+    public synchronized void removePermissionFromRole(String roleName, Permission permission) {
         Role role = rolesByName.get(roleName);
         if (role == null) {
             throw new IllegalArgumentException("Role with name '" + roleName + "' not found");
@@ -181,13 +182,13 @@ public class RoleManager implements Repository<Role> {
     }
 
     /**
-     * Находит роли, имеющие указанное право доступа.
+     * Находит роли, имеющие указанное право доступа (потокобезопасная версия).
      *
      * @param permissionName имя права
      * @param resource ресурс
      * @return список ролей, имеющих указанное право
      */
-    public List<Role> findRolesWithPermission(String permissionName, String resource) {
+    public synchronized List<Role> findRolesWithPermission(String permissionName, String resource) {
         return rolesById.values().stream()
                 .filter(role -> role.hasPermission(permissionName, resource))
                 .collect(Collectors.toList());

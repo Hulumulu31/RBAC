@@ -5,14 +5,15 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 /**
- * Система логирования событий (Audit Log).
+ * Потокобезопасная система логирования событий (Audit Log).
  * Записывает все важные действия в системе для последующего аудита.
  */
 public class AuditLog {
-    private final List<AuditEntry> entries;
+    private final List<AuditEntry> entries; // CopyOnWriteArrayList для потокобезопасности
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
@@ -36,18 +37,18 @@ public class AuditLog {
      * Создает новый пустой журнал аудита.
      */
     public AuditLog() {
-        this.entries = new ArrayList<>();
+        this.entries = new CopyOnWriteArrayList<>();
     }
 
     /**
-     * Записывает событие в журнал аудита.
+     * Записывает событие в журнал аудита (потокобезопасная версия).
      *
      * @param action действие (например, "CREATE_USER", "DELETE_ROLE")
      * @param performer исполнитель действия (имя пользователя)
      * @param target цель действия (имя объекта)
      * @param details дополнительные детали
      */
-    public void log(String action, String performer, String target, String details) {
+    public synchronized void log(String action, String performer, String target, String details) {
         String timestamp = LocalDateTime.now().format(FORMATTER);
         entries.add(new AuditEntry(timestamp, action, performer, target, details));
     }

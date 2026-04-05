@@ -1,19 +1,20 @@
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Менеджер пользователей для управления пользователями в системе RBAC.
+ * Потокобезопасный менеджер пользователей для управления пользователями в системе RBAC.
  * Реализует интерфейс Repository<User> и предоставляет дополнительные методы
  * для поиска, фильтрации и сортировки пользователей.
  */
 public class UserManager implements Repository<User> {
-    private final Map<String, User> users; // ключ — username
+    private final Map<String, User> users; // ключ — username (ConcurrentHashMap)
 
     /**
      * Создает новый UserManager с пустым хранилищем.
      */
     public UserManager() {
-        this.users = new HashMap<>();
+        this.users = new ConcurrentHashMap<>();
     }
 
     /**
@@ -98,51 +99,6 @@ public class UserManager implements Repository<User> {
     }
 
     /**
-     * Находит пользователя по email.
-     *
-     * @param email email для поиска
-     * @return Optional, содержащий пользователя, если найден
-     */
-    public Optional<User> findByEmail(String email) {
-        if (email == null) {
-            return Optional.empty();
-        }
-        return users.values().stream()
-                .filter(user -> email.equals(user.email()))
-                .findFirst();
-    }
-
-    /**
-     * Находит пользователей, соответствующих указанному фильтру.
-     *
-     * @param filter фильтр для поиска
-     * @return список пользователей, соответствующих фильтру
-     */
-    public List<User> findByFilter(UserFilter filter) {
-        if (filter == null) {
-            return findAll();
-        }
-        return users.values().stream()
-                .filter(filter::test)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Находит всех пользователей с применением фильтра и сортировки.
-     *
-     * @param filter фильтр для поиска (может быть null)
-     * @param sorter компаратор для сортировки (может быть null)
-     * @return отфильтрованный и отсортированный список пользователей
-     */
-    public List<User> findAll(UserFilter filter, Comparator<User> sorter) {
-        List<User> result = findByFilter(filter);
-        if (sorter != null) {
-            result.sort(sorter);
-        }
-        return result;
-    }
-
-    /**
      * Проверяет, существует ли пользователь с указанным именем.
      *
      * @param username имя пользователя для проверки
@@ -161,7 +117,7 @@ public class UserManager implements Repository<User> {
      * @throws IllegalArgumentException если пользователь не найден
      * @throws IllegalArgumentException если новые данные не прошли валидацию
      */
-    public void update(String username, String newFullName, String newEmail) {
+    public synchronized void update(String username, String newFullName, String newEmail) {
         if (!users.containsKey(username)) {
             throw new IllegalArgumentException("User with username '" + username + "' not found");
         }
@@ -172,6 +128,51 @@ public class UserManager implements Repository<User> {
         // Создаем нового пользователя с обновленными данными
         User updatedUser = new User(username, newFullName, newEmail);
         users.put(username, updatedUser);
+    }
+
+    /**
+     * Находит пользователя по email (потокобезопасная версия).
+     *
+     * @param email email для поиска
+     * @return Optional, содержащий пользователя, если найден
+     */
+    public synchronized Optional<User> findByEmail(String email) {
+        if (email == null) {
+            return Optional.empty();
+        }
+        return users.values().stream()
+                .filter(user -> email.equals(user.email()))
+                .findFirst();
+    }
+
+    /**
+     * Находит пользователей, соответствующих указанному фильтру (потокобезопасная версия).
+     *
+     * @param filter фильтр для поиска
+     * @return список пользователей, соответствующих фильтру
+     */
+    public synchronized List<User> findByFilter(UserFilter filter) {
+        if (filter == null) {
+            return findAll();
+        }
+        return users.values().stream()
+                .filter(filter::test)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Находит всех пользователей с применением фильтра и сортировки (потокобезопасная версия).
+     *
+     * @param filter фильтр для поиска (может быть null)
+     * @param sorter компаратор для сортировки (может быть null)
+     * @return отфильтрованный и отсортированный список пользователей
+     */
+    public synchronized List<User> findAll(UserFilter filter, Comparator<User> sorter) {
+        List<User> result = findByFilter(filter);
+        if (sorter != null) {
+            result.sort(sorter);
+        }
+        return result;
     }
 
     /**
